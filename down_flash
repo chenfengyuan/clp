@@ -1,0 +1,26 @@
+#!/bin/dash
+
+content=$(curl -s "127.0.0.1/downloads?$1");
+[ "x$content" = "xNIL" ] && echo 'geted NIL\nexit' && exit 1;
+name=$(echo $content|cut -d ' ' -f 1|sed 's/\///g');
+cd ~/movie/;
+[ -e $name ] ||mkdir $name;
+cd $name;
+total=$(($(echo $content|wc -w)/2))
+
+/bin/echo -e "\e[31m\e[1m$name\e[0m==================\n";
+j=0
+
+echo $content|cut -d ' ' -f 2-|xargs -n2 echo|
+while read i;
+do
+    j=$((j+1))
+    /bin/echo -e "\e]2;$j/$total\a";
+    url=$(echo $i|cut -d ' ' -f 1);
+    file=$(echo $i|cut -d ' ' -f 2);
+    # echo "[$url\t$file]";
+    wget -U "Opera/9.80 (X11; Linux x86_64; U; en) Presto/2.8.131 Version/11.10" -nc  $url -O $file;
+    /bin/echo -e "\e[31m\e[1m$name\e[0m==================\n";
+done;
+
+/bin/echo -e "\e]2;down_flash finished\a";

@@ -1,0 +1,29 @@
+#!/bin/dash
+
+
+if [ "x$1" = "x" ] ;then
+    exit 1;
+fi
+if [ "x$1" = "x-" ] ;then
+    content=$(cat);
+elif [ "x$1" = "x-f" ] ;then
+    shift;
+    content=$(cat $1)
+else
+    content=$*;
+fi
+cd ~/movie/;
+total=$(echo $content|grep -oP '\Qhttp://u.115.com/file/\E(?:[a-z0-9](?!http://))+.'|wc -w);
+#echo "content:[$content]";
+j=0;
+echo $content|grep -oP '\Qhttp://u.115.com/file/\E(?:[a-z0-9](?!http://))+.'|while read link;do
+    j=$((j+1))
+    /bin/echo -e "\e]2;115-down:$j/$total\a";
+    result=$(curl -s "127.0.0.1/downloads?$link");
+    filename=$(echo $result|cut -d ' ' -f 1);
+    link=$(echo $result|cut -d ' ' -f 2);
+    read a;
+    #wget -U "Opera/9.80 (X11; Linux x86_64; U; en) Presto/2.8.131 Version/11.10" -c $link -O $filename;
+    aria2c -U "Opera/9.80 (X11; Linux x86_64; U; en) Presto/2.8.131 Version/11.10" -c $link -o $filename;
+    read a;
+done

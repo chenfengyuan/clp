@@ -5,9 +5,10 @@
     (load quicklisp-init)))
 (defvar *load-drakma-and-cl-ppcre-p* nil)
 (cond ((not *load-drakma-and-cl-ppcre-p*)
-  (asdf:oos 'asdf:load-op :drakma)
-  (asdf:oos 'asdf:load-op :cl-ppcre)
-  (asdf:operate 'asdf:load-op 'sb-fastcgi)))
+       (asdf:oos 'asdf:load-op :drakma)
+       (asdf:oos 'asdf:load-op :cl-ppcre)
+       (asdf:operate 'asdf:load-op 'sb-fastcgi)))
+;       (asdf:oos 'asdf:load-op :swank)))
 
 (cond ((not *load-drakma-and-cl-ppcre-p*)
        (sb-fastcgi:load-libfcgi "/usr/lib/libfcgi.so.0.0.0")))
@@ -17,12 +18,19 @@
   (:use :common-lisp :drakma :cl-ppcre)
   (:export :get-115-download-url :get-flash-urls :download-flash :main :fcgi-main))
 (in-package :cfy.downloads)
-
+(defvar *load-drakma-and-cl-ppcre-p* nil)
 (defvar *115-LOGIN* (make-instance 'drakma:cookie-jar))
 (defvar *user-agent* "Opera/9.80 (X11; Linux x86_64; U; en) Presto/2.8.131 Version/11.10")
 (defvar *flash-url-example* "http://v.youku.com/v_show/id_XMTE0OTE4MjAw.html")
 (defvar *115-url-example* "http://u.115.com/file/b6ntyg8r")
 
+(defun concatenate-strings(&rest strings)
+  (apply #'concatenate 'string strings))
+(defun join-string-list (string-list &optional (item #\Space))
+    "Concatenates a list of strings
+and puts spaces between the elements."
+    (let ((format-string (format nil "~a" (concatenate-strings "~{~a~^" (list item) "~}"))))
+      (format nil format-string string-list)))
 (defun 115-login (&key (account "115_down")(passwd "fn4=IplVhkmwtqvjh7dy"))
   (drakma:http-request "http://passport.115.com/?ac=login&goto=http%3A%2F%2Fu.115.com%2Ffile%2Fb6ntyg8r"
 		       :method :post
@@ -33,7 +41,8 @@
 (defun test-115-login()
   (and (car (ppcre:all-matches-as-strings "115down@gmail\.com" (drakma:http-request "http://u.115.com/file/b6ntyg8r" :cookie-jar *115-LOGIN* :user-agent *user-agent*))) t))
 (defun get-115-content(115-url)
-  (drakma:http-request 115-url :cookie-jar *115-LOGIN* :user-agent *user-agent*))
+  (ignore-errors
+    (drakma:http-request 115-url :cookie-jar *115-LOGIN* :user-agent *user-agent*)))
 (defun get-115-download-url(115-content)
   (unless (cookie-jar-cookies *115-LOGIN*) (115-login))
   (car (ppcre:all-matches-as-strings "http://(?:\\d*\\.)?bak\\.[^\"]+" 115-content)))
@@ -51,8 +60,8 @@
 		       (get-115-download-url content)))))
 (defun get-flvcd-content(url &optional (quality "high"))
 			       (let ((get-url (concatenate 'string "http://www.flvcd.com/parse.php?flag=&format=" quality "&kw=" url "&sbt=%BF%AA%CA%BCGO%21")))
-				 (drakma:http-request get-url
-						      :user-agent *user-agent*)))
+				 (ignore-errors (drakma:http-request get-url
+						      :user-agent *user-agent*))))
 (defun get-flash-urls(flvcd-content)
   (mapcar
    (lambda (string)
@@ -66,8 +75,6 @@
     (sb-ext:run-program "wget" args :input t :output t :search t)
     #+:clisp
     (apply #'ext:execute "/usr/bin/wget" :arguments args)))
-(defun concatenate-strings(&rest strings)
-  (apply #'concatenate 'string strings))
 (defun porper-file-name(sum current)
   (format nil "~V,'0d" (ceiling (/ (log (1+ sum))(log 10))) current))
 (defun flash-urls->wget-para(urls)
@@ -107,11 +114,6 @@
 	 (dir-pre (concatenate-strings "/home/cfy/movie/" video-name "/")))
     (sb-ext:run-program "/bin/mkdir" (list dir-pre))
     (loop for para in wget-para do (wget (nth 0 para) :dir-pre  dir-pre :output-file (nth 1 para)))))
-(defun join-string-list (string-list &optional (item #\Space))
-    "Concatenates a list of strings
-and puts spaces between the elements."
-    (let ((format-string (format nil "~a" (concatenate-strings "~{~a~^" (list item) "~}"))))
-      (format nil format-string string-list)))
 (defun flatlist (l)
   (cond
     ((null l) nil)
@@ -127,10 +129,8 @@ and puts spaces between the elements."
       (flatlist
        (flash-urls->wget-para
     	(get-flash-urls content)))))))
-(defun main()
-  (download-flash (cadr sb-ext:*posix-argv*)))
 (defun fcgi-115(req query-string)
-  (sb-fastcgi:fcgx-puts req (format nil "Content-Type: text/plain~%~%115:~a"
+  (sb-fastcgi:fcgx-puts req (format nil "Content-Type: text/plain~%~%~a"
 				    (115-fcgi-put query-string))))
 (defun fcgi-flash(req query-string)
     (sb-fastcgi:fcgx-puts req (format nil "Content-Type: text/plain~%~%~a"
@@ -153,3 +153,11 @@ and puts spaces between the elements."
   (sb-fastcgi:socket-server #'fcgi
 			    :inet-addr "127.0.0.1"
 			    :port 9000))
+
+
+;; (cond ((not *load-drakma-and-cl-ppcre-p*)
+;;        (swank:create-server :port 4004)))
+;; (setf *load-drakma-and-cl-ppcre-p* t)
+;; (defun main()
+;;   (sb-thread:make-thread #'fcgi-main))
+
