@@ -114,19 +114,19 @@ and puts spaces between the elements."
 	 (dir-pre (concatenate-strings "/home/cfy/movie/" video-name "/")))
     (sb-ext:run-program "/bin/mkdir" (list dir-pre))
     (loop for para in wget-para do (wget (nth 0 para) :dir-pre  dir-pre :output-file (nth 1 para)))))
-(defun flatlist (l)
-  (cond
-    ((null l) nil)
-    ((atom l) (list l))
-    ((atom (car l)) (cons (car l) (flatlist (cdr l))))
-    ((append (flatlist (car l)) (flatlist (cdr l))))))
+(defun flatten (x)
+  (labels ((rec (x acc)
+             (cond ((null x) acc)
+                   ((atom x) (cons x acc))
+                   (t (rec (car x) (rec (cdr x) acc))))))
+    (rec x nil)))
 (defun flash-cgi-put(url)
   (let ((content (get-flvcd-content url)))
     (join-string-list
      (apply
       #'list
       (get-flash-video-name content)
-      (flatlist
+      (flatten
        (flash-urls->wget-para
     	(get-flash-urls content)))))))
 (defun fcgi-115(req query-string)
