@@ -1,5 +1,15 @@
 #!/bin/dash
 
+
+get_url_size(){
+	( wget -U "Opera/9.80 (X11; Linux x86_64; U; en) Presto/2.8.131 Version/11.10" $1 -O - |dd of=/dev/zero bs=1 count=1 2>&1 ) 2>&1 |grep -i 'length' |perl -pe 's/^\D+//;s/ .+\n$//;'
+	}
+get_size(){
+    ls -l $1|cut -d ' ' -f 5|tr -d '\n'
+}
+consider_file_size=0
+
+[ "x$1" = "x-size" ] && consider_file_size=1 && shift
 content=$(curl -s "127.0.0.1/downloads?$1");
 [ "x$content" = "xNIL" ] && echo 'geted NIL\nexit' && exit 1;
 name=$(echo $content|cut -d ' ' -f 1|sed 's/\///g');
@@ -19,7 +29,17 @@ do
     url=$(echo $i|cut -d ' ' -f 1);
     file=$(echo $i|cut -d ' ' -f 2);
     # echo "[$url\t$file]";
-    wget -U "Opera/9.80 (X11; Linux x86_64; U; en) Presto/2.8.131 Version/11.10" -nc  $url -O $file;
+    if [ $consider_file_size -gt 0 -a -e $file ] ;then
+	echo "checking $file....";
+	remote_size=$(get_url_size $url);
+	local_size=$(get_size $file);
+	if [ $remote_size -gt $local_size ] ;then
+	    echo "rm $file";
+	    rm $file;
+	else
+	    wget -T 3 -U "Opera/9.80 (X11; Linux x86_64; U; en) Presto/2.8.131 Version/11.10" -nc  $url -O $file;
+	fi
+    fi
     /bin/echo -e "\e[31m\e[1m$name\e[0m==================\n";
 done;
 
