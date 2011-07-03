@@ -28,7 +28,7 @@ do
     /bin/echo -e "\e]2;$j/$total\a";
     url=$(echo $i|cut -d ' ' -f 1);
     file=$(echo $i|cut -d ' ' -f 2);
-    echo "[$url\t$file]";
+    # echo "[$url\t$file]";
     if [ $consider_file_size -gt 0 -a -e $file ] ;then
 	echo "checking $file....";
 	remote_size=$(get_url_size $url);
