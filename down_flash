@@ -28,7 +28,7 @@ do
     /bin/echo -e "\e]2;$j/$total\a";
     url=$(echo $i|cut -d ' ' -f 1);
     file=$(echo $i|cut -d ' ' -f 2);
-    # echo "[$url\t$file]";
+    echo "[$url\t$file]";
     if [ $consider_file_size -gt 0 -a -e $file ] ;then
 	echo "checking $file....";
 	remote_size=$(get_url_size $url);
@@ -36,9 +36,10 @@ do
 	if [ $remote_size -gt $local_size ] ;then
 	    echo "rm $file";
 	    rm $file;
-	else
 	    wget -T 3 -U "Opera/9.80 (X11; Linux x86_64; U; en) Presto/2.8.131 Version/11.10" -nc  $url -O $file;
 	fi
+    else
+	wget -T 3 -U "Opera/9.80 (X11; Linux x86_64; U; en) Presto/2.8.131 Version/11.10" -nc  $url -O $file;
     fi
     /bin/echo -e "\e[31m\e[1m$name\e[0m==================\n";
 done;
