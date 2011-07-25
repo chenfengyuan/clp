@@ -15,4 +15,9 @@
 	     (namestring (namestring path)))
 	(output-sql *sql-command-string*)
 	(if (probe-file path) (delete-file path))
-	(sb-ext:run-program "sqlite3" `(,namestring ,(concatenate 'string  ".read " *sql-command-string* )) :search t)))
+	#-(or sbcl clisp ccl)(progn (format *error-output* "not implement.~%")(quit))
+	#+sbcl (sb-ext:run-program "sqlite3" `(,namestring ,(concatenate 'string  ".read " *sql-command-string* )) :search t)
+	#+clisp (ext:run-program "/usr/bin/sqlite3" :arguments `(,namestring ,(concatenate 'string  ".read " *sql-command-string* )))
+	#+ccl (run-program "sqlite3" `(,namestring ,(concatenate 'string  ".read " *sql-command-string* )))
+	))
+	
