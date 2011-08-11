@@ -13,6 +13,8 @@
 (cond ((not *load-drakma-and-cl-ppcre-p*)
        (cl-fastcgi:load-libfcgi "/usr/lib/libfcgi.so.0.0.0")))
 (setf *load-drakma-and-cl-ppcre-p* t)
+#+ccl
+(setf ccl:*default-external-format* :utf-8)
 
 (defpackage cfy.downloads
   (:use :common-lisp :drakma :cl-ppcre)
@@ -68,7 +70,7 @@ and puts spaces between the elements."
   (mapcar
    (lambda (string)
      (subseq string 3))
-   (all-matches-as-strings "<U>http://.*"
+   (ppcre:all-matches-as-strings "<U>http://.*"
 			   flvcd-content)))
 ;; (defun wget(url &key (dir-pre "/home/cfy/movie/") (output-file nil output-file-given))
 ;;   (let ((args (if output-file-given (list "-U" *user-agent* "-c" url  "-O" (concatenate 'string dir-pre output-file)) (list "-c" url "-P" dir-pre))))
@@ -105,16 +107,17 @@ and puts spaces between the elements."
 	(tmp-b (make-temp-file))
 	(tmp-c (make-temp-file)))
     (rm-file tmp-a)
-    (with-open-file (out tmp-a :direction :output :EXTERNAL-FORMAT CHARSET:UTF-8)(format out "~a" string))
-    #+(or sbcl clisp)(rm-file tmp-b)
+    (with-open-file (out tmp-a :direction :output)(format out "~a" string))
+    #+(or sbcl clisp ccl)(rm-file tmp-b)
     #+sbcl (sb-ext:run-program "iconv" '("-f" "utf8" "-t" "latin1")  :input tmp-a :search t :output tmp-b)
     #+clisp (ext:execute "/usr/bin/iconv" "-f" "utf8" "-t" "latin1"  tmp-a "-o" tmp-b)
+    #+ccl (ccl:run-program "iconv" '("-f" "utf8" "-t" "latin1") :input tmp-a  :output tmp-b)
     #+(or sbcl clisp ccl) (rm-file tmp-c)
     #+sbcl (sb-ext:run-program "iconv" '("-f" "gb18030" "-t" "utf8")  :input tmp-b :search t :output tmp-c)
     ;; #+ccl (ccl:run-program "iconv" '("-f" "gb18030" "-t" "utf8") :input tmp-b :output tmp-c)
     #+clisp (ext:execute "/usr/bin/iconv" "-f" "gb18030" "-t" "utf8"  tmp-b "-o" tmp-c)
-    #+ccl (ccl:run-program "iconv" '("-f" "gb18030" "-t" "utf8") :input tmp-a  :output tmp-c)
-    (with-open-file (in tmp-c :EXTERNAL-FORMAT CHARSET:UTF-8)
+    #+ccl (ccl:run-program "iconv" '("-f" "gb18030" "-t" "utf8") :input tmp-b  :output tmp-c)
+    (with-open-file (in tmp-c)
       (let* ((length (file-length in))
 	     (text (make-string (file-length in)))
 	     (read (read-sequence text in)))
@@ -123,7 +126,7 @@ and puts spaces between the elements."
 	    (subseq text 0 read)
 	    text)))))
 (defun get-flash-video-name(flvcd-content)
-  (string-trim '(#\") (car (all-matches-as-strings "\".*$" (car (all-matches-as-strings "document.title = \"[^\"]+\"" (drakma-gb18030-to-utf8 flvcd-content)))))))
+  (string-trim '(#\") (car (ppcre:all-matches-as-strings "\".*$" (car (ppcre:all-matches-as-strings "document.title = \"[^\"]+\"" (drakma-gb18030-to-utf8 flvcd-content)))))))
 ;; (defun download-flash(url)
 ;;   (let* ((video-name (get-flash-video-name (get-flvcd-content url)))
 ;; 	 (wget-para (flash-urls->wget-para(get-flash-urls (get-flvcd-content url))))
