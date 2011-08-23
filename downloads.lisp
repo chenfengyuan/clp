@@ -18,7 +18,7 @@
 
 (defpackage cfy.downloads
   (:use :common-lisp :drakma :cl-ppcre)
-  (:export :get-115-download-url :get-flash-urls :download-flash :main :fcgi-main))
+  (:export :flash-cgi-put :fcgi-main))
 (in-package :cfy.downloads)
 (defvar *load-drakma-and-cl-ppcre-p* nil)
 (defvar *115-LOGIN* (make-instance 'drakma:cookie-jar))
