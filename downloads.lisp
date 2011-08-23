@@ -18,7 +18,7 @@
 
 (defpackage cfy.downloads
   (:use :common-lisp :drakma :cl-ppcre)
-  (:export :flash-cgi-put :fcgi-main))
+  (:export :flash-cgi-put :fcgi-main :flash-from-content))
 (in-package :cfy.downloads)
 (defvar *load-drakma-and-cl-ppcre-p* nil)
 (defvar *115-LOGIN* (make-instance 'drakma:cookie-jar))
@@ -149,6 +149,14 @@ and puts spaces between the elements."
       (flatten
        (flash-urls->wget-para
 	(get-flash-urls content)))))))
+(defun flash-from-content(content)
+  (join-string-list
+   (apply
+      #'list
+      (get-flash-video-name content)
+      (flatten
+       (flash-urls->wget-para
+	(get-flash-urls content))))))
 (defun fcgi-115(req query-string)
   (cl-fastcgi:fcgx-puts req (format nil "Content-Type: text/plain~%~%~a"
 				    (115-fcgi-put query-string))))
