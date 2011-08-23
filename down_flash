@@ -1,5 +1,13 @@
 #!/bin/sh
 
+if [ "x$1" = "x-h" -o "x$1" = "x--help" ] ;then
+    echo "$0 [-h|--help] [-C DIR] [-size] urls";
+    echo "\tuse -h|--help to display this and exit";
+    echo "\tuse -C to change the default directory ~/movie/ to DIR";
+    echo "\tuse -size to auto remove uncompelete downloaded file,and redownload them";
+    echo "\tthe arguments' order should be same as above mentioned";
+    exit;
+fi
 
 get_url_size(){
 	( wget -U "Opera/9.80 (X11; Linux x86_64; U; en) Presto/2.8.131 Version/11.10" $1 -O - |dd of=/dev/zero bs=1 count=1 2>&1 ) 2>&1 |grep -i 'length' |perl -pe 's/^\D+//;s/ .+\n$//;'
@@ -9,11 +17,18 @@ get_size(){
 }
 consider_file_size=0
 
+DIR=~/movie/;
+[ "x$1" = "x-C" ] && shift && DIR=$1 && shift;
+cd $DIR;
+
 [ "x$1" = "x-size" ] && consider_file_size=1 && shift
-content=$(curl -s "184.82.41.44/downloads?$1");
+temp_file=$(mktemp down_flash-tempfile.XXXXX)
+wget -q 'http://www.flvcd.com/parse.php?flag=&format=high&kw='"$1"'&sbt=%BF%AA%CA%BCGO%21' -O $temp_file;
+content=$(wget "184.82.41.44/downloads" --post-file $temp_file -O - -q |base64 -d);
+rm $temp_file;
 [ "x$content" = "xNIL" ] && echo 'geted NIL\nexit' && exit 1;
 name=$(echo $content|cut -d ' ' -f 1|sed 's/\///g');
-cd ~/movie/;
+
 [ -e $name ] ||mkdir $name;
 cd $name;
 total=$(($(echo $content|wc -w)/2))
@@ -36,10 +51,10 @@ do
 	if [ $remote_size -gt $local_size ] ;then
 	    echo "rm $file";
 	    rm $file;
-	    wget -T 3 -U "Opera/9.80 (X11; Linux x86_64; U; en) Presto/2.8.131 Version/11.10" -nc  $url -O $file;
+	    wget -t 1 -T 3 -U "Opera/9.80 (X11; Linux x86_64; U; en) Presto/2.8.131 Version/11.10" -nc  $url -O $file;
 	fi
     else
-	wget -T 3 -U "Opera/9.80 (X11; Linux x86_64; U; en) Presto/2.8.131 Version/11.10" -nc  $url -O $file;
+	wget -t 1 -T 3 -U "Opera/9.80 (X11; Linux x86_64; U; en) Presto/2.8.131 Version/11.10" -nc  $url -O $file;
     fi
     /bin/echo -e "\e[31m\e[1m$name\e[0m==================\n";
 done;
