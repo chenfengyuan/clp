@@ -10,7 +10,7 @@ if [ "x$1" = "x-h" -o "x$1" = "x--help" ] ;then
 fi
 
 get_url_size(){
-	( wget -U "Opera/9.80 (X11; Linux x86_64; U; en) Presto/2.8.131 Version/11.10" $1 -O - |dd of=/dev/zero bs=1 count=1 2>&1 ) 2>&1 |grep -i 'length' |perl -pe 's/^\D+//;s/ .+\n$//;'
+	( wget -U "Opera/9.80 (X11; Linux x86_64; U; en) Presto/2.8.131 Version/11.10" $1 -O - |dd of=/dev/zero bs=1 count=1 2>&1 ) 2>&1 |grep -i 'length:' |perl -pe 's/^\D+//;s/ .+\n$//;'
 	}
 get_size(){
     ls -l $1|cut -d ' ' -f 5|tr -d '\n'
@@ -31,11 +31,12 @@ name=$(echo $content|cut -d ' ' -f 1|sed 's/\///g');
 
 [ -e $name ] ||mkdir $name;
 cd $name;
-total=$(($(echo $content|wc -w)/2))
+total=$(($(echo $content|wc -w)/2));
 
 /bin/echo -e "\e[31m\e[1m$name\e[0m==================\n";
-j=0
+j=0;
 
+r=0;
 echo $content|cut -d ' ' -f 2-|xargs -n2 echo|
 while read i;
 do
@@ -51,12 +52,13 @@ do
 	if [ $remote_size -gt $local_size ] ;then
 	    echo "rm $file";
 	    rm $file;
-	    wget -t 1 -T 3 -U "Opera/9.80 (X11; Linux x86_64; U; en) Presto/2.8.131 Version/11.10" -nc  $url -O $file;
+	    wget -t 1 -T 3 -U "Opera/9.80 (X11; Linux x86_64; U; en) Presto/2.8.131 Version/11.10" -nc  $url -O $file ||r=$((1+r));
 	fi
     else
-	wget -t 1 -T 3 -U "Opera/9.80 (X11; Linux x86_64; U; en) Presto/2.8.131 Version/11.10" -nc  $url -O $file;
+	wget -t 1 -T 3 -U "Opera/9.80 (X11; Linux x86_64; U; en) Presto/2.8.131 Version/11.10" -nc  $url -O $file||r=$((1+r));
     fi
     /bin/echo -e "\e[31m\e[1m$name\e[0m==================\n";
 done;
 
 /bin/echo -e "\e]2;down_flash finished\a";
+exit $r;
