@@ -10,7 +10,7 @@ if [ "x$1" = "x-h" -o "x$1" = "x--help" ] ;then
 fi
 
 get_url_size(){
-	( wget -U "Opera/9.80 (X11; Linux x86_64; U; en) Presto/2.8.131 Version/11.10" $1 -O - |dd of=/dev/zero bs=1 count=1 2>&1 ) 2>&1 |grep -i 'length:' |perl -pe 's/^\D+//;s/ .+\n$//;'
+	( wget -U "Opera/9.80 (X11; Linux x86_64; U; en) Presto/2.8.131 Version/11.10" $1 -O - |dd of=/dev/zero bs=1 count=1 2>&1 ) 2>&1 |head -n 5 |tail -n 1|perl -pe 's/^\D+//;s/ .+\n$//;'
 	}
 get_size(){
     ls -l $1|cut -d ' ' -f 5|tr -d '\n'
