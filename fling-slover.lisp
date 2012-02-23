@@ -154,21 +154,24 @@
 	     (:meta :http-equiv "Content-Type" :content "text/html;charset=utf-8")
 	     (:title "fling slover"))
 	   (:body
-	    (:p
-	     (str
-	      (if (post-parameters*)
-		  (let ((b (make-array (list *row* *column*) :initial-element 0 :element-type '(unsigned-byte 8)))
-			start end r)
-		    (loop
-		       for i from 0 to (1- *row*)
-		       do (loop
-			     for j from 0 to (1- *column*)
-			     if (string= "on" (post-parameter (format nil "~a,~a" i j)))
-			     do (setf (aref b i j) 1)))
-		    (setf start (get-internal-real-time))
-		    (setf r (fling-slover b))
-		    (setf end (get-internal-real-time))
-		    (list (- end start) r)))))
+	    (if (post-parameters*)
+		(let ((b (make-array (list *row* *column*) :initial-element 0 :element-type '(unsigned-byte 8)))
+		      start end r)
+		  (loop
+		     for i from 0 to (1- *row*)
+		     do (loop
+			   for j from 0 to (1- *column*)
+			   if (string= "on" (post-parameter (format nil "~a,~a" i j)))
+			   do (setf (aref b i j) 1)))
+		  (setf start (get-internal-real-time))
+		  (setf r (mapcar (lambda (x) (list (format
+						     nil "~a,~a"
+						     (1+ (car x))
+						     (1+ (cadr x)))
+						    (caddr x))) (car (fling-slover b))))
+		  (setf end (get-internal-real-time))
+		  (htm (:p (str (format nil "execute time:~a" (- end start)))))
+		  (htm (:p (str r)))))
 	    (:form
 	     :action "fling-slover.lisp"
 	     :method "POST"
