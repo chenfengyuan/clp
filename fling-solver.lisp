@@ -1,7 +1,7 @@
-(declaim (optimize (debug 3) (speed 0)))
 (defpackage :fling-solver
   (:nicknames :fs)
-  (:use :cl :hunchentoot :cl-who))
+  (:use :cl :hunchentoot :cl-who)
+  (:export :fling-http-solver))
 (in-package :fling-solver)
 
 (defparameter *row* 8)
@@ -189,4 +189,5 @@
   (output-html 8 7))
 
 (defun fling-http-solver ()
+  (start (make-instance 'hunchentoot:easy-acceptor :port 4242))
   (push (create-prefix-dispatcher "/cl/fling-solver.lisp" #'main-html) *dispatch-table*))
