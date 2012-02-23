@@ -1,8 +1,8 @@
 (declaim (optimize (debug 3) (speed 0)))
-(defpackage :fling-slover
+(defpackage :fling-solver
   (:nicknames :fs)
   (:use :cl :hunchentoot :cl-who))
-(in-package :fling-slover)
+(in-package :fling-solver)
 
 (defparameter *row* 8)
 (defparameter *column* 7)
@@ -131,7 +131,7 @@
 				  (pop path)
 				  (unmove board i y 'up))
 			     until (onboard board i y)))))))))
-(defun fling-slover (board)
+(defun fling-solver (board)
   (let ((n (loop
 	      with n = 0
 	      for i from 0 to (1- (array-dimension board 0))
@@ -152,7 +152,7 @@
     (:html :xmlns "http://www.w3.org/1999/xhtml" :xml\:lang "en" :lang "en"
 	   (:head
 	     (:meta :http-equiv "Content-Type" :content "text/html;charset=utf-8")
-	     (:title "fling slover"))
+	     (:title "fling solver"))
 	   (:body
 	    (if (post-parameters*)
 		(let ((b (make-array (list *row* *column*) :initial-element 0 :element-type '(unsigned-byte 8)))
@@ -168,13 +168,13 @@
 						     nil "~a,~a"
 						     (1+ (car x))
 						     (1+ (cadr x)))
-						    (caddr x))) (car (fling-slover b))))
+						    (caddr x))) (car (fling-solver b))))
 		  (setf end (get-internal-real-time))
 		  (htm (:p (str (format nil "execute time:~a" (- end start)))))
 		  (htm (:p (str r)))))
 	    (:form
-	     :action "fling-slover.lisp"
-	     :method "POST"
+	     :action "fling-solver.lisp"
+	     :method "post"
 	     (:table
 	      (loop for i from 0 to (1- row)
 		 do (htm
@@ -182,10 +182,11 @@
 		      (loop for j from 0 to (1- column)
 			 do (htm
 			     (:th
-			      (:input :type "checkbox" :name (str (format nil "~a,~a" i j))))))))))
-	     (:input :type "submit" :value "submit"))))))
+			      (:input :type "checkbox" :name (format nil "~a,~a" i j)))))))))
+	     (:p (:input :type "submit" :value "submit")))
+	    (:p (:a :href "http://validator.w3.org/check?uri=referer" (:img :src "http://www.w3.org/Icons/valid-xhtml10" :alt "Valid XHTML 1.0 Strict" :height"31" :width "88" )))))))
 (defun main-html ()
   (output-html 8 7))
 
-(defun fling-http-slover ()
-  (push (create-prefix-dispatcher "/cl/fling-slover.lisp" #'main-html) *dispatch-table*))
+(defun fling-http-solver ()
+  (push (create-prefix-dispatcher "/cl/fling-solver.lisp" #'main-html) *dispatch-table*))
