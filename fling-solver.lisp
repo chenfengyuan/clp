@@ -1,11 +1,12 @@
 (defpackage :fling-solver
   (:nicknames :fs)
-  (:use :cl :hunchentoot :cl-who)
+  (:use :cl :hunchentoot :cl-who :alexandria)
   (:export :fling-http-solver))
 (in-package :fling-solver)
 
 (defparameter *row* 8)
 (defparameter *column* 7)
+(defparameter *log-file* "/home/cfy/.fling")
 (defun onboard (board x y)
   (= 1 (aref board x y)))
 (defun unput (board x y)
@@ -141,8 +142,35 @@
 		    do (incf n))
 	      finally (return n))))
     (walk-init)
-    (walk board n nil)
+    (walk (copy-array board) n nil)
     (walk-result)))
+
+(defun output-html-table (board)
+  (with-html-output-to-string (*standard-output* nil :indent t)
+    (:table 
+     (loop
+	for i from 0 to (1- (array-dimension board 0))
+	do (htm (:tr
+		 (loop
+		    for j from 0 to (1- (array-dimension board 1))
+		    do (htm
+			(:td
+			 :class
+			 (ecase (aref board i j)
+			   (0 "off")
+			   (1 "on")
+			   (right "right")
+			   (left "left")
+			   (up "up")
+			   (down "down")))))))))))
+(defun output-solution-table (board solution)
+  (let ((board (copy-array board :element-type t)))
+    (with-html-output-to-string (*standard-output* nil :indent t)
+      (loop
+	 for step in (car solution)
+	 do (setf (aref board (car step) (cadr step)) (caddr step))
+	 do (htm (:p (str (output-html-table board))))
+	 do (move board (car step) (cadr step) (caddr step))))))
 
 (defmacro with-html (&body body)
   `(with-html-output-to-string (*standard-output* nil :prologue t :indent t)
@@ -152,11 +180,23 @@
     (:html :xmlns "http://www.w3.org/1999/xhtml" :xml\:lang "en" :lang "en"
 	   (:head
 	     (:meta :http-equiv "Content-Type" :content "text/html;charset=utf-8")
-	     (:title "fling solver"))
+	     (:title "fling solver")
+	     (:style :type "text/css" "td { width:30px;height:30px;border:1px solid #999;background-color: #fff;}.on {background-color:#060;} .right {background:#006;border-right: 5px solid red;} .left {background:#006;border-left: 5px solid red;} .up {background:#006;border-top: 5px solid red;} .down {background:#006;border-bottom: 5px solid red;}")
+	     (:script :type "text/javascript"
+"      function $(id) {
+	return document.getElementById(id);
+      }
+      function setCharacter(row, col) {
+	var td = $(\"a\"+ row + \"_\" + col);
+        var id = $(\"a\"+ row + \"__\" + col);  
+	td.className = td.className == \"on\" ? \"\" : \"on\";
+        id.value = td.className == \"on\" ? \"on\" : \"off\";
+      }
+"))
 	   (:body
 	    (if (post-parameters*)
 		(let ((b (make-array (list *row* *column*) :initial-element 0 :element-type '(unsigned-byte 8)))
-		      start end r)
+ 		      start end r)
 		  (loop
 		     for i from 0 to (1- *row*)
 		     do (loop
@@ -164,25 +204,32 @@
 			   if (string= "on" (post-parameter (format nil "~a,~a" i j)))
 			   do (setf (aref b i j) 1)))
 		  (setf start (get-internal-real-time))
-		  (setf r (mapcar (lambda (x) (list (format
-						     nil "~a,~a"
-						     (1+ (car x))
-						     (1+ (cadr x)))
-						    (caddr x))) (car (fling-solver b))))
+		  ;; (setf r (mapcar (lambda (x) (list (format
+		  ;; 				     nil "~a,~a"
+		  ;; 				     (1+ (car x))
+		  ;; 				     (1+ (cadr x)))
+		  ;; 				    (caddr x))) (car (fling-solver b))))
+		  (setf r (fling-solver b))
+		  (if r
+		      (with-open-file (out *log-file* :direction :output :if-does-not-exist :create :if-exists :append)
+		    (write b :pretty nil :stream out)
+		    (princ #\newline out)))
 		  (setf end (get-internal-real-time))
 		  (htm (:p (str (format nil "execute time:~a" (- end start)))))
-		  (htm (:p (str r)))))
+		  (htm (:p (str (output-solution-table b r))))
+		  ;; (htm (:p (str r)))
+		  ))
 	    (:form
 	     :action "fling-solver.lisp"
 	     :method "post"
 	     (:table
 	      (loop for i from 0 to (1- row)
-		 do (htm
+ 		 do (htm
 		     (:tr
 		      (loop for j from 0 to (1- column)
 			 do (htm
-			     (:th
-			      (:input :type "checkbox" :name (format nil "~a,~a" i j)))))))))
+			     (:td :id (format nil "a~a_~a" i j) :onclick (format nil  "setCharacter(~a,~a)" i j)
+			      (:input :type "hidden" :name (format nil "~a,~a" i j) :id (format nil "a~a__~a" i j)))))))))
 	     (:p (:input :type "submit" :value "submit")))
 	    (:p (:a :href "http://validator.w3.org/check?uri=referer" (:img :src "http://www.w3.org/Icons/valid-xhtml10" :alt "Valid XHTML 1.0 Strict" :height"31" :width "88" )))))))
 (defun main-html ()
