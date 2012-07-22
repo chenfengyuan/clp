@@ -1,0 +1,25 @@
+(declaim (optimize (debug 3)))
+(cl:defpackage :fol
+  (:use :cl))
+(in-package :fol)
+(defun sort_lines (lines)
+  (sort lines (lambda (a b)
+		(let ((ax (car a))
+		      (ay (cadr a))
+		      (bx (car b))
+		      (by (cadr b)))
+		  (or (< ax bx)
+		      (and (= ax bx)
+			   (< ay by)))))))
+(defun find_overlapping_lines (lines)
+  (loop
+	with r
+	for i from 0 to (- (length lines) 2)
+	for a = (aref lines i)
+	do (loop
+		 for j from (1+ i) to (1- (length lines))
+		 for b = (aref lines j)
+		 while (and (>= (cadr a) (car b)))
+		 do (push (list a b) r)
+		 do (format t "~a和~a重叠~%" a b))
+	finally (return r)))
