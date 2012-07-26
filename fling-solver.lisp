@@ -177,7 +177,7 @@
       (loop
 	 for step in (car solution)
 	 do (setf (aref board (car step) (cadr step)) (caddr step))
-	 do (htm (:p (str (output-html-table board))))
+	 do (htm (str (output-html-table board)))
 	 do (move board (car step) (cadr step) (caddr step))))))
 
 (defmacro with-html (&body body)
@@ -223,9 +223,10 @@
 		    (write b :pretty nil :stream out)
 		    (princ #\newline out)))
 		  (setf end (get-internal-real-time))
-		  #+ (and ccl linux) (htm (:p (str (format nil "execute time:~a us" (- end start)))))
+		  #+ (and ccl linux x86_64) (htm (:p (str (format nil "execute time:~a us" (- end start)))))
 		  #+ (and ccl windows) (htm (:p (str (format nil "execute time:~a ms" (- end start)))))
-		  (htm (:p (str (output-solution-table b r))))
+		  #+ (and ccl linux x86) (htm (:p (str (format nil "execute time:~a ms" (- end start)))))
+		  (htm (str (output-solution-table b r)))
 		  ;; (htm (:p (str r)))
 		  ))
 	    (:form
