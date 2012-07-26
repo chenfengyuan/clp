@@ -222,7 +222,7 @@
 		    (princ #\newline out)))
 		  (setf end (get-internal-real-time))
 		  #+ (and ccl linux) (htm (:p (str (format nil "execute time:~a us" (- end start)))))
-		  #+ (and ccl windows (htm (:p (str (format nil "execute time:~a ms" (- end start))))))
+		  #+ (and ccl windows) (htm (:p (str (format nil "execute time:~a ms" (- end start)))))
 		  (htm (:p (str (output-solution-table b r))))
 		  ;; (htm (:p (str r)))
 		  ))
