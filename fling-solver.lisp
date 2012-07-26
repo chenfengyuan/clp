@@ -265,4 +265,7 @@
 	  (format t "http start at port:~d.~%please visit http://127.0.0.1:~:*~d/cl/fling-solver.lisp~%" port)
 	  (force-output)
 	  (fling-http-solver port)
-	  #+ccl (ccl:wait-for-signal 2 nil)))))
+	  #+ (and ccl linux)
+	  (ccl:wait-for-signal 2 nil)
+	  #+ (and ccl windows)
+	  (do nil nil (sleep 42))))))
