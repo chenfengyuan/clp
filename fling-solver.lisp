@@ -12,7 +12,7 @@
 
 (defparameter *row* 8)
 (defparameter *column* 7)
-(defparameter *log-file* "/home/cfy/.fling")
+(defparameter *log-file* nil)
 (defun onboard (board x y)
   (= 1 (aref board x y)))
 (defun unput (board x y)
@@ -216,7 +216,7 @@
 		  ;; 				     (1+ (cadr x)))
 		  ;; 				    (caddr x))) (car (fling-solver b))))
 		  (setf r (fling-solver b))
-		  (if r
+		  (if (and r *log-file*)
 		      (with-open-file (out *log-file* :direction :output :if-does-not-exist :create :if-exists :append)
 		    (write b :pretty nil :stream out)
 		    (princ #\newline out)))
