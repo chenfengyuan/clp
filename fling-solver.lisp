@@ -1,5 +1,7 @@
 (in-package :cl)
 (eval-when (:compile-toplevel :load-toplevel :execute)
+  #+(and ccl windows)
+  (pushnew :hunchentoot-no-ssl *features*)
   (dolist (p '(:hunchentoot :cl-who :alexandria))
     (unless (find-package p)
       (ql:quickload p))))
@@ -269,4 +271,4 @@
 	  #+ (and ccl linux)
 	  (ccl:wait-for-signal 2 nil)
 	  #+ (and ccl windows)
-	  (do nil nil (sleep 42))))))
+	  (read-char)))))
