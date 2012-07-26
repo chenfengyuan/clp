@@ -1,7 +1,13 @@
+(in-package :cl)
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (dolist (p '(:hunchentoot :cl-who :alexandria))
+    (unless (find-package p)
+      (ql:quickload p))))
+(declaim (optimize (speed 3)))
 (defpackage :fling-solver
   (:nicknames :fs)
   (:use :cl :hunchentoot :cl-who :alexandria)
-  (:export :fling-http-solver))
+  (:export :fling-http-solver :main))
 (in-package :fling-solver)
 
 (defparameter *row* 8)
@@ -181,7 +187,7 @@
 	   (:head
 	     (:meta :http-equiv "Content-Type" :content "text/html;charset=utf-8")
 	     (:title "fling solver")
-	     (:style :type "text/css" "td { width:30px;height:30px;border:1px solid #999;background-color: #fff;}.on {background-color:#060;} .right {background:#006;border-right: 5px solid red;} .left {background:#006;border-left: 5px solid red;} .up {background:#006;border-top: 5px solid red;} .down {background:#006;border-bottom: 5px solid red;}")
+	     (:style :type "text/css" "td { width:30px;height:30px;border:1px solid #999;background-color: #fff;}.on {background-color:#060;} .right {background:#006;border-right: 5px solid red;} .left {background:#006;border-left: 5px solid red;} .up {background:#006;border-top: 5px solid red;} .down {background:#006;border-bottom: 5px solid red;} #problem td:hover {background-color: #CCC;}" )
 	     (:script :type "text/javascript"
 "      function $(id) {
 	return document.getElementById(id);
@@ -215,26 +221,48 @@
 		    (write b :pretty nil :stream out)
 		    (princ #\newline out)))
 		  (setf end (get-internal-real-time))
-		  (htm (:p (str (format nil "execute time:~a" (- end start)))))
+		  #+ccl (htm (:p (str (format nil "execute time:~a us" (- end start)))))
 		  (htm (:p (str (output-solution-table b r))))
 		  ;; (htm (:p (str r)))
 		  ))
 	    (:form
 	     :action "fling-solver.lisp"
 	     :method "post"
-	     (:table
-	      (loop for i from 0 to (1- row)
- 		 do (htm
-		     (:tr
-		      (loop for j from 0 to (1- column)
-			 do (htm
-			     (:td :id (format nil "a~a_~a" i j) :onclick (format nil  "setCharacter(~a,~a)" i j)
-			      (:input :type "hidden" :name (format nil "~a,~a" i j) :id (format nil "a~a__~a" i j)))))))))
-	     (:p (:input :type "submit" :value "submit")))
+	     (:div :id "problem"
+		   (:table
+		    (loop for i from 0 to (1- row)
+			  do (htm
+			      (:tr
+			       (loop for j from 0 to (1- column)
+				     do (htm
+					 (:td :id (format nil "a~a_~a" i j) :onclick (format nil  "setCharacter(~a,~a)" i j)
+					      (:input :type "hidden" :name (format nil "~a,~a" i j) :id (format nil "a~a__~a" i j))))))))))
+	     (:p (:input :type "submit" :value "Solve!")))
+	    (:p "the javascript and css in this page are copied from" (:a :href "http://www.anthonytambrin.com/flingsolve/" "http://www.anthonytambrin.com/flingsolve/"))
 	    (:p (:a :href "http://validator.w3.org/check?uri=referer" (:img :src "http://www.w3.org/Icons/valid-xhtml10" :alt "Valid XHTML 1.0 Strict" :height"31" :width "88" )))))))
 (defun main-html ()
   (output-html 8 7))
 
-(defun fling-http-solver ()
-  (start (make-instance 'hunchentoot:easy-acceptor :port 4242))
+(defun fling-http-solver (&optional (port 6673))
+  (start (make-instance 'hunchentoot:easy-acceptor :port port))
   (push (create-prefix-dispatcher "/cl/fling-solver.lisp" #'main-html) *dispatch-table*))
+
+(defun main ()
+  #-ccl
+  (format t "Sorry,but I do not support ~a yet.~%" (lisp-implementation-type))
+  #+ccl
+  (let ((1st
+	 #+ccl (car ccl:*command-line-argument-list*))
+	(2nd
+	 #+ccl (cadr ccl:*command-line-argument-list*))
+	port)
+    (if (search "-h" (string-downcase 1st))
+	(format t "Usage: ~a [PORT]~%" 1st)
+	(progn
+	  (if 2nd
+	      (setf port (parse-integer 2nd))
+	      (setf port 6673))
+	  (format t "http start at port:~d.~%please visit http://127.0.0.1:~:*~d/cl/fling-solver.lisp~%" port)
+	  (force-output)
+	  (fling-http-solver port)
+	  #+ccl (ccl:wait-for-signal 2 nil)))))
