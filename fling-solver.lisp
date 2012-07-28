@@ -1,15 +1,30 @@
+;; Copyright (C) 2012 Chen Fengyuan (jeova.sanctus.unus+po2db (at) gmail.org)
+
+;; This program is free software; you can redistribute it and/or
+;; modify it under the terms of the GNU General Public License
+;; as published by the Free Software Foundation; either version 2
+;; of the License, or (at your option) any later version.
+
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
+
+;; You should have received a copy of the GNU General Public License
+;; along with this program; if not, write to the Free Software
+;; Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 (in-package :cl)
+(declaim (optimize (speed 3)))
 (eval-when (:compile-toplevel :load-toplevel :execute)
   #+(and ccl windows)
   (pushnew :hunchentoot-no-ssl *features*)
   (dolist (p '(:hunchentoot :cl-who :alexandria))
     (unless (find-package p)
       (ql:quickload p))))
-(declaim (optimize (speed 3)))
 (defpackage :fling-solver
   (:nicknames :fs)
   (:use :cl :hunchentoot :cl-who :alexandria)
-  (:export :fling-http-solver :main))
+  (:export :fling-http-solver :main :save-executable))
 (in-package :fling-solver)
 
 (defparameter *row* 8)
@@ -223,9 +238,12 @@
 		    (write b :pretty nil :stream out)
 		    (princ #\newline out)))
 		  (setf end (get-internal-real-time))
-		  #+ (and ccl linux x86_64) (htm (:p (str (format nil "execute time:~a us" (- end start)))))
+		  #+ (and ccl linux) (htm (:p (str (format nil "execute time:~a ~a"
+							   (- end start)
+							   (cond
+							     ((string= (machine-type) "x86_64") "us")
+							     ((string= (machine-type) "i686") "ms"))))))
 		  #+ (and ccl windows) (htm (:p (str (format nil "execute time:~a ms" (- end start)))))
-		  #+ (and ccl linux x86) (htm (:p (str (format nil "execute time:~a ms" (- end start)))))
 		  (htm (str (output-solution-table b r)))
 		  ;; (htm (:p (str r)))
 		  ))
@@ -243,6 +261,9 @@
 					      (:input :type "hidden" :name (format nil "~a,~a" i j) :id (format nil "a~a__~a" i j))))))))))
 	     (:p (:input :type "submit" :value "Solve!")))
 	    (:p "the javascript and css in this page are copied from" (:a :href "http://www.anthonytambrin.com/flingsolve/" "http://www.anthonytambrin.com/flingsolve/"))
+	    (:p "written by ChenFengyuan")
+	    (:p "License GPLv2: " (:a :href "http://www.gnu.org/licenses/gpl-2.0.html" "http://www.gnu.org/licenses/gpl-2.0.html") ".")
+	    (:p (:a :href "http://code.google.com/p/fling-solver" "http://code.google.com/p/fling-solver"))
 	    (:p (:a :href "http://validator.w3.org/check?uri=referer" (:img :src "http://www.w3.org/Icons/valid-xhtml10" :alt "Valid XHTML 1.0 Strict" :height"31" :width "88" )))))))
 (defun main-html ()
   (output-html 8 7))
@@ -259,8 +280,13 @@
 	 #+ccl (car ccl:*command-line-argument-list*))
 	(2nd
 	 #+ccl (cadr ccl:*command-line-argument-list*))
+	(3rd
+	 #+ccl (caddr ccl:*command-line-argument-list*))
 	port)
-    (if (search "-h" (string-downcase 1st))
+    (when (search ".lisp" (string-downcase 2nd))
+      (load (compile-file 2nd))
+      (save-executable 3rd))
+    (if (search "-h" (string-downcase 2nd))
 	(format t "Usage: ~a [PORT]~%" 1st)
 	(progn
 	  (if 2nd
@@ -273,3 +299,10 @@
 	  (ccl:wait-for-signal 2 nil)
 	  #+ (and ccl windows)
 	  (read-char)))))
+(defun save-executable (file)
+  #+ccl
+  (ccl:save-application file :toplevel-function #'fling-solver:main :prepend-kernel t)
+  #-ccl
+  (declare (ignore file))
+  #-ccl
+  (error "~S is not supported by now to generate executable" (lisp-implementation-type)))
