@@ -242,7 +242,9 @@
 							   (- end start)
 							   (cond
 							     ((string= (machine-type) "x86_64") "us")
-							     ((string= (machine-type) "i686") "ms"))))))
+							     ((string= (machine-type) "i686") "ms")
+							     ((string= (machine-type) "armv6l") "ms")
+							     (t ""))))))
 		  #+ (and ccl windows) (htm (:p (str (format nil "execute time:~a ms" (- end start)))))
 		  (htm (str (output-solution-table b r)))
 		  ;; (htm (:p (str r)))
